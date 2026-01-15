@@ -35,6 +35,18 @@ app.get('/', (req, res) => {
   });
 });
 
+// Route API de base
+app.get('/api', (req, res) => {
+  res.json({ 
+    message: 'API Wedding - Backend opérationnel! 🎉',
+    version: '1.0.0',
+    routes: {
+      guests: '/api/guests',
+      auth: '/api/auth'
+    }
+  });
+});
+
 // Gestion des erreurs 404
 app.use((req, res) => {
   res.status(404).json({ message: 'Route non trouvée' });
