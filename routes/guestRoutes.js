@@ -148,9 +148,22 @@ router.get('/:id', protect, async (req, res) => {
 // @access  Private (Admin seulement)
 router.put('/:id', protect, async (req, res) => {
   try {
+    // Préparer les données à mettre à jour
+    const updateData = { ...req.body };
+    
+    // Si relation est une chaîne vide, la convertir en null
+    if (updateData.relation === '') {
+      updateData.relation = null;
+    }
+    
+    // Si email est fourni, le convertir en lowercase
+    if (updateData.email) {
+      updateData.email = updateData.email.toLowerCase();
+    }
+
     const guest = await Guest.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       {
         new: true,
         runValidators: true
