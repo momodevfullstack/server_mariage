@@ -74,18 +74,35 @@ router.get('/', protect, async (req, res) => {
 router.get('/stats', protect, async (req, res) => {
   try {
     const total = await Guest.countDocuments();
-    const confirmed = await Guest.countDocuments({ status: 'confirmed' });
-    const declined = await Guest.countDocuments({ status: 'declined' });
-    const pending = await Guest.countDocuments({ status: 'pending' });
+    
+    // Récupérer tous les invités pour calculer le nombre réel de personnes
+    const allGuests = await Guest.find();
+    
+    // Calculer le nombre total de personnes (chaque invité compte pour 1, +1 si plusOne)
+    let confirmedPersons = 0;
+    let declinedPersons = 0;
+    let pendingPersons = 0;
+    
+    allGuests.forEach(guest => {
+      const personCount = guest.plusOne ? 2 : 1;
+      if (guest.status === 'confirmed') {
+        confirmedPersons += personCount;
+      } else if (guest.status === 'declined') {
+        declinedPersons += personCount;
+      } else {
+        pendingPersons += personCount;
+      }
+    });
+    
     const withPlusOne = await Guest.countDocuments({ plusOne: true });
 
     res.status(200).json({
       success: true,
       data: {
         total,
-        confirmed,
-        declined,
-        pending,
+        confirmed: confirmedPersons, // Nombre de personnes confirmées (avec plusOne compté)
+        declined: declinedPersons,   // Nombre de personnes déclinées (avec plusOne compté)
+        pending: pendingPersons,     // Nombre de personnes en attente (avec plusOne compté)
         withPlusOne
       }
     });
@@ -178,7 +195,3 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 export default router;
-
-
-
-
