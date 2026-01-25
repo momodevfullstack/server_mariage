@@ -9,7 +9,7 @@ const router = express.Router();
 // @access  Public
 router.post('/', async (req, res) => {
   try {
-    const { name, email, status, plusOne, message } = req.body;
+    const { name, email, status, plusOne, message, relation } = req.body;
 
     // Validation
     if (!name || !email) {
@@ -31,7 +31,8 @@ router.post('/', async (req, res) => {
       email: email.toLowerCase(),
       status: status || 'pending',
       plusOne: plusOne || false,
-      message: message || ''
+      message: message || '',
+      relation: relation || undefined
     });
 
     res.status(201).json({
@@ -94,6 +95,9 @@ router.get('/stats', protect, async (req, res) => {
       }
     });
     
+    const confirmed = await Guest.countDocuments({ status: 'confirmed' });
+    const declined = await Guest.countDocuments({ status: 'declined' });
+    const pending = await Guest.countDocuments({ status: 'pending' });
     const withPlusOne = await Guest.countDocuments({ plusOne: true });
 
     res.status(200).json({
@@ -195,3 +199,7 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 export default router;
+
+
+
+

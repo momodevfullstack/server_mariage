@@ -34,6 +34,11 @@ const guestSchema = new mongoose.Schema(
       trim: true,
       default: ''
     },
+    relation: {
+      type: String,
+      enum: ['Collaborateur', 'Ami', 'Connaissance', 'Famille', 'Patron', 'Collègue', 'Pasteur', 'Frere/soeur eglise'],
+      trim: true
+    },
     invitedAt: {
       type: Date,
       default: Date.now
