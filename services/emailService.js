@@ -8,10 +8,24 @@ const __dirname = dirname(__filename);
 
 // Configuration du transporteur email
 const createTransporter = () => {
-  // Utiliser Gmail, Outlook, ou un autre service SMTP
-  // Pour Gmail, vous devez créer un "App Password" dans votre compte Google
+  const emailService = process.env.EMAIL_SERVICE || 'gmail';
+  
+  // Si service SMTP personnalisé avec host/port
+  if (emailService === 'smtp' && process.env.EMAIL_HOST) {
+    return nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT || '587'),
+      secure: process.env.EMAIL_SECURE === 'true', // true pour 465, false pour autres ports
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    });
+  }
+  
+  // Pour Gmail, Outlook, etc. (service prédéfini)
   return nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
+    service: emailService,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD // App Password pour Gmail
@@ -142,13 +156,29 @@ const getInvitationCard = () => {
 // Fonction principale pour envoyer l'email d'invitation
 export const sendInvitationEmail = async (guest) => {
   try {
+    console.log(`📧 Tentative d'envoi d'email à ${guest.email}...`);
+    
     // Vérifier que les variables d'environnement sont configurées
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.warn('⚠️ Variables d\'environnement EMAIL_USER et EMAIL_PASSWORD non configurées. Email non envoyé.');
+      console.error('❌ Variables d\'environnement EMAIL_USER et EMAIL_PASSWORD non configurées. Email non envoyé.');
+      console.error('   EMAIL_USER:', process.env.EMAIL_USER ? '✅ Défini' : '❌ Manquant');
+      console.error('   EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '✅ Défini' : '❌ Manquant');
       return { success: false, message: 'Configuration email manquante' };
     }
 
+    console.log(`   Service: ${process.env.EMAIL_SERVICE || 'gmail'}`);
+    console.log(`   Utilisateur: ${process.env.EMAIL_USER}`);
+    
     const transporter = createTransporter();
+    
+    // Tester la connexion
+    try {
+      await transporter.verify();
+      console.log('   ✅ Connexion au serveur email réussie');
+    } catch (verifyError) {
+      console.error('   ❌ Erreur de connexion au serveur email:', verifyError.message);
+      return { success: false, error: verifyError.message, message: 'Erreur de connexion au serveur email' };
+    }
 
     // Obtenir le chemin ou l'URL de l'image
     const imageInfo = getInvitationCard();
@@ -220,9 +250,13 @@ export const sendInvitationEmail = async (guest) => {
     };
 
     // Envoyer l'email
+    console.log(`   📤 Envoi de l'email en cours...`);
     const info = await transporter.sendMail(mailOptions);
     
-    console.log('✅ Email envoyé avec succès:', info.messageId);
+    console.log(`✅ Email envoyé avec succès à ${guest.email}`);
+    console.log(`   MessageId: ${info.messageId}`);
+    console.log(`   Réponse: ${info.response || 'N/A'}`);
+    
     return { 
       success: true, 
       messageId: info.messageId,
@@ -230,10 +264,23 @@ export const sendInvitationEmail = async (guest) => {
     };
 
   } catch (error) {
-    console.error('❌ Erreur lors de l\'envoi de l\'email:', error);
+    console.error(`❌ Erreur lors de l'envoi de l'email à ${guest.email}:`);
+    console.error('   Type:', error.constructor.name);
+    console.error('   Message:', error.message);
+    if (error.code) {
+      console.error('   Code:', error.code);
+    }
+    if (error.response) {
+      console.error('   Réponse serveur:', error.response);
+    }
+    if (error.responseCode) {
+      console.error('   Code réponse:', error.responseCode);
+    }
+    
     return { 
       success: false, 
       error: error.message,
+      code: error.code,
       message: 'Erreur lors de l\'envoi de l\'email'
     };
   }
