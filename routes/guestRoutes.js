@@ -1,6 +1,7 @@
 import express from 'express';
 import Guest from '../models/Guest.js';
 import { protect } from '../middleware/auth.js';
+import { sendInvitationEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -33,6 +34,12 @@ router.post('/', async (req, res) => {
       plusOne: plusOne || false,
       message: message || '',
       relation: relation || undefined
+    });
+
+    // Envoyer l'email d'invitation (en arrière-plan, ne bloque pas la réponse)
+    sendInvitationEmail(guest).catch(err => {
+      console.error('Erreur lors de l\'envoi de l\'email (non bloquant):', err);
+      // L'erreur d'email ne doit pas empêcher la création de l'invité
     });
 
     res.status(201).json({
