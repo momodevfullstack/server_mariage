@@ -42,7 +42,7 @@ const guestSchema = new mongoose.Schema(
     table: {
       type: Number,
       min: 1,
-      max: 22,
+      max: 30,
       default: null
     },
     invitedAt: {
